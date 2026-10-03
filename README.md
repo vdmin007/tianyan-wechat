@@ -20,10 +20,10 @@
 
 ## 安装（.pkg 安装包）
 
-预构建安装包：`dist/TianYanWeChat-1.0.0.pkg`。
+预构建安装包：`dist/TianYanWeChat-1.0.1.pkg`。
 
 - **图形安装**：双击 `.pkg` 按引导安装（默认安装到 `/Applications/TianYanWeChat.app`）。
-- **静默安装**：`sudo installer -pkg dist/TianYanWeChat-1.0.0.pkg -target /`
+- **静默安装**：`sudo installer -pkg dist/TianYanWeChat-1.0.1.pkg -target /`
 - **Gatekeeper 提示**：本机未配置 Apple Developer 签名，安装时若提示「无法验证开发者」，在访达中右键该安装包 →「打开」→「打开」即可；命令行安装不受影响。
 
 **版本管理规则（内置，自动生效）**：
@@ -32,7 +32,7 @@
 | --- | --- |
 | 未安装 | 正常安装 |
 | 旧版本（如 0.9.0） | **自动覆盖升级**至安装包版本，无需先手动删除 |
-| 相同版本（如 1.0.0） | **阻止重复安装**，提示先手动删除后再装 |
+| 相同版本（如 1.0.1） | **阻止重复安装**，提示先手动删除后再装 |
 | 更新版本（如 1.1.0） | **阻止降级覆盖**，提示先手动删除后再装 |
 
 规则由安装包内置的 `preinstall` 脚本实现，可通过 `scripts/test-preinstall.sh` 复验（四种场景全部断言通过）。

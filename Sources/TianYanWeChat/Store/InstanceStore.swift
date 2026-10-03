@@ -55,6 +55,12 @@ final class InstanceStore {
     }
 
     func recordOpened(id: String, at date: Date = Date()) {
+        // 可能在后台线程被调用（WeChatManager.open 的后台任务），
+        // 列表变更必须回到主线程，避免并发修改 + 非主线程 UI 刷新导致崩溃。
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { self.recordOpened(id: id, at: date) }
+            return
+        }
         guard let idx = instances.firstIndex(where: { $0.id == id }) else { return }
         instances[idx].lastOpenedAt = date
         save()
@@ -69,8 +75,18 @@ final class InstanceStore {
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let decoded = try? JSONDecoder().decode([WeChatInstance].self, from: data) else { return }
-        instances = decoded
+        // save() 使用 .iso8601 编码日期；老数据可能是默认格式，两种都尝试
+        let iso = JSONDecoder()
+        iso.dateDecodingStrategy = .iso8601
+        if let decoded = try? iso.decode([WeChatInstance].self, from: data) {
+            instances = decoded
+            return
+        }
+        let legacy = JSONDecoder()
+        legacy.dateDecodingStrategy = .deferredToDate
+        if let decoded = try? legacy.decode([WeChatInstance].self, from: data) {
+            instances = decoded
+        }
     }
 
     private func save() {
@@ -79,6 +95,13 @@ final class InstanceStore {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(instances) else { return }
         try? data.write(to: fileURL, options: .atomic)
-        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+        // 通知强制在主线程发出，观察者（表格刷新）依赖主线程执行
+        if Thread.isMainThread {
+            NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+        } else {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+            }
+        }
     }
 }

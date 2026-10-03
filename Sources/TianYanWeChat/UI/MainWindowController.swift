@@ -59,7 +59,12 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     }
 
     @objc private func instancesDidChange() {
-        refreshAll()
+        // 双保险：通知可能从未知线程发出，UI 刷新一律回到主线程
+        if Thread.isMainThread {
+            refreshAll()
+        } else {
+            DispatchQueue.main.async { self.refreshAll() }
+        }
     }
 
     // MARK: - 界面构建
