@@ -18,6 +18,25 @@
 - 已安装官方微信（/Applications/WeChat.app），本软件以它为核心工作
 - 使用 Swift 6.x 工具链可自行构建（Xcode / Command Line Tools）
 
+## 安装（.pkg 安装包）
+
+预构建安装包：`dist/TianYanWeChat-1.0.0.pkg`。
+
+- **图形安装**：双击 `.pkg` 按引导安装（默认安装到 `/Applications/TianYanWeChat.app`）。
+- **静默安装**：`sudo installer -pkg dist/TianYanWeChat-1.0.0.pkg -target /`
+- **Gatekeeper 提示**：本机未配置 Apple Developer 签名，安装时若提示「无法验证开发者」，在访达中右键该安装包 →「打开」→「打开」即可；命令行安装不受影响。
+
+**版本管理规则（内置，自动生效）**：
+
+| 本机已安装情况 | 安装包行为 |
+| --- | --- |
+| 未安装 | 正常安装 |
+| 旧版本（如 0.9.0） | **自动覆盖升级**至安装包版本，无需先手动删除 |
+| 相同版本（如 1.0.0） | **阻止重复安装**，提示先手动删除后再装 |
+| 更新版本（如 1.1.0） | **阻止降级覆盖**，提示先手动删除后再装 |
+
+规则由安装包内置的 `preinstall` 脚本实现，可通过 `scripts/test-preinstall.sh` 复验（四种场景全部断言通过）。
+
 ## 使用说明
 
 ### 1. 获取应用
@@ -63,6 +82,11 @@
 tianyan-wechat/
 ├── Package.swift                    # SwiftPM 工程定义
 ├── build.sh                         # 一键构建脚本（编译+组装.app+重签名）
+├── build-installer.sh               # 安装包构建脚本（pkgbuild + productbuild）
+├── installer/
+│   ├── scripts/preinstall           # 版本门控：旧版自动覆盖、同版/新版阻止重装
+│   ├── scripts/postinstall          # 安装后收尾（权限修复）
+│   └── resources/                   # 安装向导页面与 distribution.xml
 ├── Sources/TianYanWeChat/
 │   ├── main.swift                   # 应用入口
 │   ├── App/AppDelegate.swift        # 应用生命周期与菜单栏常驻
@@ -72,6 +96,7 @@ tianyan-wechat/
 │   ├── Store/InstanceStore.swift    # 实例列表 JSON 持久化
 │   └── UI/MainWindowController.swift# 主窗口：实例列表表格与操作按钮
 ├── scripts/integration_test.swift   # 核心链路集成测试（可独立编译运行）
+├── scripts/test-preinstall.sh       # 安装包版本门控单元测试（四场景断言）
 └── README.md                        # 本文档
 ```
 
@@ -140,3 +165,11 @@ swiftc -o /tmp/ty_it \
 ```
 
 全部断言 PASS 即代表多开核心链路正常。测试会自动清理产生的副本与记录。
+
+安装包版本门控另有单元测试（构造假 app 校验 preinstall 的覆盖/阻止行为）：
+
+```bash
+bash scripts/test-preinstall.sh
+```
+
+预期输出 `结果: 4 通过 / 0 失败`。

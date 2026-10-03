@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>天眼微信</title>
+    <organization>com.tianyan</organization>
+    <options customize="never" require-scripts="true" hostArchitectures="arm64,x86_64" allow-external-scripts="no"/>
+    <welcome file="welcome.html"/>
+    <conclusion file="conclusion.html"/>
+    <pkg-ref id="com.tianyan.wechat" version="@PACKAGE_VERSION@" auth="Root">TianYanWeChat-component.pkg</pkg-ref>
+    <choices-outline>
+        <line choice="default"/>
+    </choices-outline>
+    <choice id="default" visible="false">
+        <pkg-ref id="com.tianyan.wechat"/>
+    </choice>
+</installer-gui-script>

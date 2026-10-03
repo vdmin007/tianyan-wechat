@@ -1,0 +1,26 @@
+#!/bin/bash
+# 天眼微信 安装包 postinstall
+# 安装完成后的收尾（权限、缓存清理等）。
+# postinstall 运行环境：$2=目标卷  $3=目标根路径
+
+set -u
+
+APP_NAME="TianYanWeChat.app"
+BASE_VOL="${2:-/}"
+BASE_ROOT="${3:-/}"
+
+# 定位已安装的应用
+APP_PATH=""
+if [ "$BASE_ROOT" = "/" ]; then
+  APP_PATH="${BASE_VOL}/Applications/${APP_NAME}"
+else
+  APP_PATH="${BASE_VOL}${BASE_ROOT}/Applications/${APP_NAME}"
+fi
+
+if [ -d "$APP_PATH" ]; then
+  # 确保可执行权限
+  chmod +x "$APP_PATH/Contents/MacOS/TianYanWeChat" 2>/dev/null || true
+fi
+
+echo "天眼微信已安装到 ${APP_PATH}"
+exit 0
