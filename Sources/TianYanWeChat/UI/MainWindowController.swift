@@ -19,6 +19,9 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     private let manager = WeChatManager.shared
     private let store = InstanceStore.shared
 
+    /// 置顶「默认微信」固定行索引：0 为官方微信入口（不可删除、不可重命名），1..N 为用户实例。
+    private let defaultWeChatRow = 0
+
     // MARK: - 初始化
 
     convenience init() {
@@ -162,12 +165,12 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     // MARK: - 数据源
 
     func numberOfRows(in tableView: NSTableView) -> Int {
-        store.instances.count
+        // 第 0 行为固定的「默认微信」官方入口，其后为用户实例
+        store.instances.count + 1
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard row < store.instances.count else { return nil }
-        let instance = store.instances[row]
+        guard row >= 0, row <= store.instances.count else { return nil }
         let identifier = tableColumn?.identifier.rawValue ?? ""
 
         let cellID = NSUserInterfaceItemIdentifier("cell-\(identifier)")
@@ -190,22 +193,45 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             ])
         }
 
+        guard let nameCol = cell.textField else { return cell }
+
+        // 第 0 行：固定的「默认微信」官方入口
+        if row == defaultWeChatRow {
+            switch identifier {
+            case "name":
+                nameCol.stringValue = "微信（默认）"
+                nameCol.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+                nameCol.textColor = .labelColor
+            case "status":
+                let running = manager.isOfficialWeChatRunning
+                nameCol.stringValue = running ? "● 运行中" : "○ 未运行"
+                nameCol.textColor = running ? .systemGreen : .secondaryLabelColor
+            case "last":
+                nameCol.stringValue = "—"
+                nameCol.textColor = .secondaryLabelColor
+            default:
+                break
+            }
+            return cell
+        }
+
+        let instance = store.instances[row - 1]
         switch identifier {
         case "name":
-            cell.textField?.stringValue = instance.name
-            cell.textField?.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-            cell.textField?.textColor = .labelColor
+            nameCol.stringValue = instance.name
+            nameCol.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+            nameCol.textColor = .labelColor
         case "status":
             let running = manager.isRunning(instance)
-            cell.textField?.stringValue = running ? "● 运行中" : "○ 未运行"
-            cell.textField?.textColor = running ? .systemGreen : .secondaryLabelColor
+            nameCol.stringValue = running ? "● 运行中" : "○ 未运行"
+            nameCol.textColor = running ? .systemGreen : .secondaryLabelColor
         case "last":
             if let last = instance.lastOpenedAt {
-                cell.textField?.stringValue = Self.dateFormatter.string(from: last)
+                nameCol.stringValue = Self.dateFormatter.string(from: last)
             } else {
-                cell.textField?.stringValue = "—"
+                nameCol.stringValue = "—"
             }
-            cell.textField?.textColor = .secondaryLabelColor
+            nameCol.textColor = .secondaryLabelColor
         default:
             break
         }
@@ -220,7 +246,17 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
 
     func tableViewSelectionDidChange(_ notification: Notification) {
         let row = tableView.selectedRow
-        selectedInstanceID = (row >= 0 && row < store.instances.count) ? store.instances[row].id : nil
+        if row == defaultWeChatRow {
+            // 默认微信入口：不可重命名、不可删除
+            selectedInstanceID = nil
+            renameButton.isEnabled = false
+            deleteButton.isEnabled = false
+            return
+        }
+        selectedInstanceID = (row >= 1 && row <= store.instances.count) ? store.instances[row - 1].id : nil
+        let hasInstance = selectedInstanceID != nil
+        renameButton.isEnabled = hasInstance
+        deleteButton.isEnabled = hasInstance
     }
 
     // MARK: - 动作
@@ -243,8 +279,25 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     }
 
     @objc private func openTapped() {
+        if tableView.selectedRow == defaultWeChatRow {
+            openDefaultWeChat()
+            return
+        }
         guard let instance = selectedInstance() else { return }
         openInstance(instance)
+    }
+
+    /// 打开/唤起官方原生微信（默认入口）。
+    private func openDefaultWeChat() {
+        guard manager.isOfficialWeChatInstalled else {
+            showError(WeChatManagerError.wechatNotFound)
+            return
+        }
+        let ok = manager.openOfficialWeChat()
+        if !ok {
+            showError(WeChatManagerError.launchFailed("NSWorkspace.open 返回 false"))
+        }
+        refreshAll()
     }
 
     private func openInstance(_ instance: WeChatInstance) {
@@ -333,9 +386,19 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             ? "已检测到官方微信 v\(manager.officialWeChatVersion() ?? "?")  ·  \(store.instances.count) 个实例"
             : "未检测到官方微信，请先安装微信"
         tableView.reloadData()
-        // 恢复选中
+        // 恢复选中（默认行占第 0 行，实例索引 +1）
         if let sid = selectedInstanceID, let idx = store.instances.firstIndex(where: { $0.id == sid }) {
-            tableView.selectRowIndexes(IndexSet(integer: idx), byExtendingSelection: false)
+            tableView.selectRowIndexes(IndexSet(integer: idx + 1), byExtendingSelection: false)
+        }
+        // 同步按钮可用状态（默认行不可重命名/删除）
+        let row = tableView.selectedRow
+        if row == defaultWeChatRow {
+            renameButton.isEnabled = false
+            deleteButton.isEnabled = false
+        } else {
+            let hasInstance = selectedInstanceID != nil
+            renameButton.isEnabled = hasInstance
+            deleteButton.isEnabled = hasInstance
         }
     }
 
@@ -351,18 +414,22 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
 
     private func selectedInstance() -> WeChatInstance? {
         let row = tableView.selectedRow
-        guard row >= 0, row < store.instances.count else {
-            showInfo("请先在列表中选择一个实例。")
+        guard row >= 1, row <= store.instances.count else {
+            if row != defaultWeChatRow {
+                showInfo("请先在列表中选择一个实例。")
+            }
             return nil
         }
-        return store.instances[row]
+        return store.instances[row - 1]
     }
 
     private func selectInstance(id: String) {
         selectedInstanceID = id
         if let idx = store.instances.firstIndex(where: { $0.id == id }) {
-            tableView.selectRowIndexes(IndexSet(integer: idx), byExtendingSelection: false)
-            tableView.scrollRowToVisible(idx)
+            // 默认行占第 0 行，实例行索引 = 数组索引 + 1
+            let row = idx + 1
+            tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+            tableView.scrollRowToVisible(row)
         }
     }
 

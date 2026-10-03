@@ -20,6 +20,17 @@ fi
 if [ -d "$APP_PATH" ]; then
   # 确保可执行权限
   chmod +x "$APP_PATH/Contents/MacOS/TianYanWeChat" 2>/dev/null || true
+
+  # --- 刷新 LaunchServices 应用注册与图标缓存 ---
+  # 覆盖安装旧版本时，macOS 的图标缓存（com.apple.iconservices）可能仍显示旧图标
+  # 或默认图标。这里显式注销并重新注册本应用，触发系统重建图标索引。
+  LsRegister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+  if [ -x "$LsRegister" ]; then
+    "$LsRegister" -u "$APP_PATH" >/dev/null 2>&1 || true
+    "$LsRegister" -f "$APP_PATH" >/dev/null 2>&1 || true
+  fi
+  # touch 应用包，更新 mtime 以提示系统重新扫描
+  touch "$APP_PATH" 2>/dev/null || true
 fi
 
 echo "天眼微信已安装到 ${APP_PATH}"

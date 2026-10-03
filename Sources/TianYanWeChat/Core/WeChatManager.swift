@@ -183,6 +183,34 @@ final class WeChatManager {
         InstanceStore.shared.recordOpened(id: instance.id)
     }
 
+    // MARK: - 官方微信（默认入口）
+
+    /// 官方微信是否正在运行。
+    /// 通过 bundleIdentifier（com.tencent.xinWeChat）识别，兼容多路径场景。
+    var isOfficialWeChatRunning: Bool {
+        NSWorkspace.shared.runningApplications.contains { app in
+            if let bid = app.bundleIdentifier {
+                return bid == "com.tencent.xinWeChat"
+            }
+            return app.bundleURL?.path == officialWeChatURL.path
+        }
+    }
+
+    /// 打开（启动/唤起）官方原生微信。
+    /// 返回 true 表示已成功启动或唤起；false 表示启动失败或未安装。
+    @discardableResult
+    func openOfficialWeChat() -> Bool {
+        guard isOfficialWeChatInstalled else { return false }
+        if isOfficialWeChatRunning {
+            // 已在运行：直接唤起窗口
+            for app in NSWorkspace.shared.runningApplications
+            where app.bundleIdentifier == "com.tencent.xinWeChat" {
+                return app.activate()
+            }
+        }
+        return NSWorkspace.shared.open(officialWeChatURL)
+    }
+
     // MARK: - 状态检测
 
     /// 该实例（副本路径）是否正在运行。
