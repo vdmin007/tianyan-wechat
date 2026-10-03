@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="2">
-    <title>天眼微信</title>
+    <title>天微多开</title>
     <organization>com.tianyan</organization>
     <options customize="never" require-scripts="true" hostArchitectures="arm64,x86_64" allow-external-scripts="no"/>
     <welcome file="welcome.html"/>

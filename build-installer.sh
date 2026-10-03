@@ -1,20 +1,21 @@
 #!/bin/bash
-# 天眼微信 安装包构建脚本
+# 天微多开 安装包构建脚本
 # 用法: ./build-installer.sh [版本号]
-#   - 未指定版本号时，自动从 dist/TianYanWeChat.app 的 Info.plist 读取
-# 产物: dist/TianYanWeChat-<版本>.pkg
+#   - 未指定版本号时，自动从 dist/天微多开.app 的 Info.plist 读取
+# 产物: dist/天微多开-<版本>.pkg
 #
 # 版本管理规则（实现"发现老版本自动覆盖，不重复安装"）：
-#   preinstall 脚本在安装前检测 /Applications/TianYanWeChat.app：
+#   preinstall 脚本在安装前检测 /Applications/天微多开.app：
 #   - 已安装版本 < 包版本 -> 放行，自动覆盖升级
 #   - 已安装版本 == 包版本 -> 中止安装（避免重复安装）
 #   - 已安装版本 > 包版本 -> 中止安装（避免降级覆盖）
 #   - 未安装 -> 正常安装
+#   - 检测到旧命名 /Applications/TianYanWeChat.app -> 放行，安装后由 postinstall 清理旧目录
 set -euo pipefail
 cd "$(dirname "$0")"
 
-APP_DIR="dist/TianYanWeChat.app"
-PKG_NAME_BASE="TianYanWeChat"
+APP_DIR="dist/天微多开.app"
+PKG_NAME_BASE="天微多开"
 INSTALL_LOCATION="/Applications"
 BUNDLE_ID="com.tianyan.wechat"
 

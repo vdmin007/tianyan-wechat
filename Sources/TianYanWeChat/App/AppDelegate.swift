@@ -32,11 +32,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
-        button.image = NSImage(systemSymbolName: "quote.bubble", accessibilityDescription: "天眼微信")
+        button.image = NSImage(systemSymbolName: "quote.bubble", accessibilityDescription: "天微多开")
         button.imagePosition = .imageOnly
 
         let menu = NSMenu()
-        let showItem = NSMenuItem(title: "打开天眼微信", action: #selector(showMainWindow(_:)), keyEquivalent: "")
+        let showItem = NSMenuItem(title: "打开天微多开", action: #selector(showMainWindow(_:)), keyEquivalent: "")
         showItem.target = self
         menu.addItem(showItem)
 
@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let quitItem = NSMenuItem(title: "退出天眼微信", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "退出天微多开", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 

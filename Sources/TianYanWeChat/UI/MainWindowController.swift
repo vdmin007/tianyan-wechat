@@ -32,7 +32,7 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             defer: false
         )
         self.init(window: window)
-        window.title = "天眼微信"
+        window.title = "天微多开"
         window.minSize = NSSize(width: 560, height: 340)
         window.center()
         buildUI()

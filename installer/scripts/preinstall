@@ -1,10 +1,12 @@
 #!/bin/bash
-# 天眼微信 安装包 preinstall 版本门控脚本
+# 天微多开 安装包 preinstall 版本门控脚本
 # 职责（"发现老版本自动覆盖，不要重复安装"）：
 #   1) 未安装                -> 放行（全新安装）
 #   2) 已安装更旧版本        -> 放行（自动覆盖升级）
 #   3) 已安装相同版本        -> 拒绝（避免重复安装），提示先卸载
 #   4) 已安装更新版本        -> 拒绝（避免降级覆盖），提示先卸载
+#   5) 检测到旧命名 TianYanWeChat.app（1.0.2 及更早） -> 放行（旧版自动覆盖升级，
+#      安装完成后由 postinstall 删除旧英文目录并刷新图标缓存）
 #
 # preinstall 运行环境：$1=包路径  $2=目标卷  $3=目标根路径
 # 为便于单元测试，本脚本支持环境变量 TY_INSTALLED_APP_PATH 注入已安装应用路径。
@@ -12,24 +14,33 @@
 set -u
 
 PKG_VERSION="@PACKAGE_VERSION@"
-APP_NAME="TianYanWeChat.app"
+APP_NAME_NEW="天微多开.app"
+APP_NAME_OLD="TianYanWeChat.app"
 INSTALLED_APP=""
+INSTALLED_IS_OLD=0
 
 # ---- 确定已安装应用路径 ----
 if [ -n "${TY_INSTALLED_APP_PATH:-}" ]; then
   INSTALLED_APP="$TY_INSTALLED_APP_PATH"
+  case "$(basename "$INSTALLED_APP")" in
+    "$APP_NAME_OLD") INSTALLED_IS_OLD=1 ;;
+  esac
 else
-  # 标准安装位置：/Applications/TianYanWeChat.app
+  # 标准安装位置，先新路径后旧命名路径
   BASE_VOL="${2:-/}"
   BASE_ROOT="${3:-/}"
-  CANDIDATE=""
   if [ "$BASE_ROOT" = "/" ]; then
-    CANDIDATE="${BASE_VOL}/Applications/${APP_NAME}"
+    CAND_NEW="${BASE_VOL}/Applications/${APP_NAME_NEW}"
+    CAND_OLD="${BASE_VOL}/Applications/${APP_NAME_OLD}"
   else
-    CANDIDATE="${BASE_VOL}${BASE_ROOT}/Applications/${APP_NAME}"
+    CAND_NEW="${BASE_VOL}${BASE_ROOT}/Applications/${APP_NAME_NEW}"
+    CAND_OLD="${BASE_VOL}${BASE_ROOT}/Applications/${APP_NAME_OLD}"
   fi
-  if [ -d "$CANDIDATE" ] && [ -f "$CANDIDATE/Contents/Info.plist" ]; then
-    INSTALLED_APP="$CANDIDATE"
+  if [ -d "$CAND_NEW" ] && [ -f "$CAND_NEW/Contents/Info.plist" ]; then
+    INSTALLED_APP="$CAND_NEW"
+  elif [ -d "$CAND_OLD" ] && [ -f "$CAND_OLD/Contents/Info.plist" ]; then
+    INSTALLED_APP="$CAND_OLD"
+    INSTALLED_IS_OLD=1
   fi
 fi
 
@@ -49,16 +60,22 @@ vercmp() {
   }'
 }
 
-echo "天眼微信安装包 v${PKG_VERSION}"
+echo "天微多开安装包 v${PKG_VERSION}"
 
 if [ -z "$INSTALLED_APP" ]; then
-  echo "未检测到已安装的天眼微信，执行全新安装。"
+  echo "未检测到已安装的天微多开，执行全新安装。"
+  exit 0
+fi
+
+if [ "$INSTALLED_IS_OLD" -eq 1 ]; then
+  echo "检测到旧命名版本（路径: ${INSTALLED_APP}），安装程序将自动覆盖升级为「天微多开」${PKG_VERSION}，"
+  echo "旧英文目录将在安装完成后被清理。"
   exit 0
 fi
 
 # 读取已安装版本（读不到按 0.0.0 处理，视为旧版本即可覆盖）
 INSTALLED_VERSION=$(/usr/bin/defaults read "$INSTALLED_APP/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "0.0.0")
-echo "检测到已安装的天眼微信版本: ${INSTALLED_VERSION}（路径: ${INSTALLED_APP}）"
+echo "检测到已安装的天微多开版本: ${INSTALLED_VERSION}（路径: ${INSTALLED_APP}）"
 
 vercmp "$INSTALLED_VERSION" "$PKG_VERSION"
 case $? in

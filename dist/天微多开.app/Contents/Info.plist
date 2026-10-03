@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>天眼微信</string>
+    <string>天微多开</string>
     <key>CFBundleDisplayName</key>
-    <string>天眼微信</string>
+    <string>天微多开</string>
     <key>CFBundleIdentifier</key>
     <string>com.tianyan.wechat</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleVersion</key>
-    <string>1.0.2</string>
+    <string>1.0.3</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.2</string>
+    <string>1.0.3</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>

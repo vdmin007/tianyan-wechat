@@ -1,4 +1,4 @@
-# 天眼微信 TianYanWeChat
+# 天微多开
 
 在 macOS 上同时打开多个微信的启动/管理框架。以系统中已安装的官方微信为核心，不修改微信安装本身，通过「受管副本」技术为每个实例生成独立的微信应用副本与数据容器，实现多账号并存、互不干扰。
 
@@ -20,10 +20,10 @@
 
 ## 安装（.pkg 安装包）
 
-预构建安装包：`dist/TianYanWeChat-1.0.2.pkg`。
+预构建安装包：`dist/天微多开-1.0.3.pkg`。
 
-- **图形安装**：双击 `.pkg` 按引导安装（默认安装到 `/Applications/TianYanWeChat.app`）。
-- **静默安装**：`sudo installer -pkg dist/TianYanWeChat-1.0.2.pkg -target /`
+- **图形安装**：双击 `.pkg` 按引导安装（默认安装到 `/Applications/天微多开.app`，自动覆盖旧版并清理旧英文目录）。
+- **静默安装**：`sudo installer -pkg dist/天微多开-1.0.3.pkg -target /`
 - **Gatekeeper 提示**：本机未配置 Apple Developer 签名，安装时若提示「无法验证开发者」，在访达中右键该安装包 →「打开」→「打开」即可；命令行安装不受影响。
 
 **版本管理规则（内置，自动生效）**：
@@ -31,17 +31,17 @@
 | 本机已安装情况 | 安装包行为 |
 | --- | --- |
 | 未安装 | 正常安装 |
-| 旧版本（如 0.9.0） | **自动覆盖升级**至安装包版本，无需先手动删除 |
-| 相同版本（如 1.0.2） | **阻止重复安装**，提示先手动删除后再装 |
+| 旧版本（如 1.0.2）或旧命名 TianYanWeChat.app | **自动覆盖升级**至「天微多开」，无需先手动删除 |
+| 相同版本（如 1.0.3） | **阻止重复安装**，提示先手动删除后再装 |
 | 更新版本（如 1.1.0） | **阻止降级覆盖**，提示先手动删除后再装 |
 
-规则由安装包内置的 `preinstall` 脚本实现，可通过 `scripts/test-preinstall.sh` 复验（四种场景全部断言通过）。
+规则由安装包内置的 `preinstall` 脚本实现，可通过 `scripts/test-preinstall.sh` 复验（未安装/旧版/同版/新版/旧命名迁移 五种场景全部断言通过）。
 
 ## 使用说明
 
 ### 1. 获取应用
 
-方式 A：直接使用预构建产物 `dist/TianYanWeChat.app`，拖入「应用程序」文件夹即可（如无需常驻，直接双击运行也可）。
+方式 A：直接使用预构建产物 `dist/天微多开.app`，拖入「应用程序」文件夹即可（如无需常驻，直接双击运行也可）。
 
 方式 B：本地构建（见「从源码构建」）。
 
@@ -53,7 +53,7 @@
 
 ### 3. 新建并打开实例
 
-1. 打开「天眼微信」主窗口（首次启动自动弹出；也可通过菜单栏图标 →「显示主窗口」）。
+1. 打开「天微多开」主窗口（首次启动自动弹出；也可通过菜单栏图标 →「显示主窗口」）。
 2. 点击「新建实例」，输入这个微信的身份名称（如「工作号」「生活号」）。
 3. 在列表中选择该实例，点击「打开」：
    - 第一次打开时自动完成副本生成、Bundle ID 改写、重签名，之后为秒开；
@@ -78,7 +78,7 @@
 ./build.sh release
 ```
 
-产物输出到 `dist/TianYanWeChat.app`。构建过程：`swift build -c release` → 组装 .app 目录 → 写入 Info.plist → ad-hoc 签名。
+产物输出到 `dist/天微多开.app`（内部可执行文件名保持 TianYanWeChat，不改动 SwiftPM target）。构建过程：`swift build -c release` → 组装 .app 目录 → 写入 Info.plist → ad-hoc 签名。
 
 依赖：macOS 上的 Swift 工具链（`swift`、`codesign` 随 Command Line Tools 提供）。无需任何第三方依赖。
 
@@ -102,7 +102,7 @@ tianyan-wechat/
 │   ├── Store/InstanceStore.swift    # 实例列表 JSON 持久化
 │   └── UI/MainWindowController.swift# 主窗口：实例列表表格与操作按钮
 ├── scripts/integration_test.swift   # 核心链路集成测试（可独立编译运行）
-├── scripts/test-preinstall.sh       # 安装包版本门控单元测试（四场景断言）
+├── scripts/test-preinstall.sh       # 安装包版本门控单元测试（五场景断言）
 └── README.md                        # 本文档
 ```
 
@@ -119,7 +119,7 @@ tianyan-wechat/
 
 macOS 官方微信默认只允许运行一个实例（单实例检测在微信应用自身逻辑层）。经实测，`open -n`、直接启动二进制、环境变量隔离等“零复制”方案均被微信 4.1.13 的单实例检测拦截（详见需求文档的技术路线对比）。
 
-「天眼微信」采用**受管副本**路线：
+「天微多开」采用**受管副本**路线：
 
 1. 用 APFS clonefile（`cp -cR`）从官方微信生成一份逻辑副本（秒级、磁盘增量几乎为零）；
 2. 改写副本的 `CFBundleIdentifier` 为 `com.tencent.xinWeChat.<实例ID>`，使 macOS 将其识别为独立应用；
@@ -160,7 +160,7 @@ killall Dock
 
 ## 卸载
 
-1. 在「天眼微信」中删除全部实例；
+1. 在「天微多开」中删除全部实例；
 2. 将应用拖入废纸篓；
 3. （可选）删除 `~/Library/Application Support/TianYanWeChat/` 与 `~/Library/Containers/com.tencent.xinWeChat.<实例ID>`/。
 
@@ -186,4 +186,4 @@ swiftc -o /tmp/ty_it \
 bash scripts/test-preinstall.sh
 ```
 
-预期输出 `结果: 4 通过 / 0 失败`。
+预期输出 `结果: 5 通过 / 0 失败`。
